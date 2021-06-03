@@ -74,7 +74,7 @@ Design doc for a prototype job worker service that provides an API to run arbitr
 
 - `job-worker [server/client]` combined CLI for running server and client
 - `job-worker server [--port] [--cacert] [--cert] [--key]` run the API server
-- `job-worker client [create/stop/purge/status] [--address] [--username] [--cacert] [--cert] [--key]` run client to
+- `job-worker client [create/stop/purge/status] [--address] [--cacert] [--cert] [--key]` run client to
   communicate with the API server
 - `job-worker client create [--command] [--timeout]` request a new job
 - `job-worker client stop [--id]` stop a job
