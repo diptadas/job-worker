@@ -20,40 +20,39 @@ Design doc for a prototype job worker service that provides an API to run arbitr
 - `Command string` Linux command to be executed
 - `Arguments []string` list of arguments for the command
 - `Status string` current status of the job
-- `Output string` output of the job process (combined stderr and stdout)
-- `Error string` startup error, termination error, or exit error
+- `OutputBuffer bytes.Buffer` links stderr and stdout of the job process, it will be hidden from API response
+- `Output string` output of the job process, converted from `OutputBuffer` when status is queried
+- `Error error` startup error, termination error, or exit error
 - `ExitCode integer` exit code of the job process
 
 ## Job status
 
-- `Created` Received a job creation request (short-lived since we immediately start the job instead of queueing)
 - `Running` Job process started
-- `Running_Force_Stop` Failed to kill the process after force stop requested
-- `Exited` Job finished successfully
-- `Exited_Error` Job finished with error
+- `Exited` Job finished successfully or exited with error
 - `Exited_Force_Stop` Job exited after force stop requested
 
 ## Job handling
 
 - Start the process using `exec.Cmd` in a separate go-routine
 - Utilize go-channels to communicate with the go-routine
-- The go-routine should exit when the job finishes or timeout reached or force stop requested
+- The go-routine should exit when the job finishes or force stop requested
 
 ## Library
 
-- `CreateJob(command, timeout)`
+- `CreateJob(command)`
     - Generate a unique ID
     - Initialize a job object using the ID
     - Save the reference to the job into memory for future access
     - Start the job in a separate go-routine
-    - Return the job object
+    - Return the job object when it successfully starts
+    - Return error if job fails to start
 - `StopJob(jobID)`
     - Fetch the job object from memory by job ID
     - Get the current status of the job and check if it is running or already stopped
-    - Stop the job process if it is running using `Cmd.Process.Kill()`. However, there can be error while terminating the process and it can be still running. Use `Running_Force_Stop` status to indicate this scenario.
-    - Send confirmation on success or error on termination failure
+    - Stop the job process if it is running using `Cmd.Process.Kill()`. It returns error if termination fails and keep status `Running`. Otherwise send a confirmation on success and change status to `Exited_Force_Stop`.
 - `GetJobStatus(jobID)`
     - Fetch the job object from memory by job ID
+    - Convert current output of the job from buffer to string
     - Return the details of a job along with output and error
 
 ## API
@@ -101,7 +100,7 @@ Response:
 Response:
 ```json
 {
-  "message": "Termination requested for job c2l1qbucie6hpdufnung, please check job status"
+  "message": "Job c2l1qbucie6hpdufnung terminated"
 }
 ```
 
@@ -109,8 +108,8 @@ Response:
 
 - `job-worker [server/client]` combined CLI for running server and client
 - `job-worker server [--port] [--cacert] [--cert] [--key]` run the API server
-- `job-worker client [create/stop/purge/status] [--address] [--cacert] [--cert] [--key]` run client to communicate with the API server
-- `job-worker client create [--command] [--timeout]` request a new job
+- `job-worker client [create/stop/status] [--address] [--cacert] [--cert] [--key]` run client to communicate with the API server
+- `job-worker client create [--command]` request a new job
 - `job-worker client stop [--id]` stop a job
 - `job-worker client status [--id]` fetch the status of a job
 
@@ -128,7 +127,7 @@ Response:
 
 - Simplified RBAC style authorization
 - Permissions:
-    - Read and write: Required for creating, stopping, and purging a job
+    - Read and write: Required for creating and stopping a job
     - Read only: Required for querying status of a job
 - Two hard coded users to mock database
     - Username `alice`: has read and write permissions
