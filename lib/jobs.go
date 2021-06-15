@@ -10,16 +10,26 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// allJobs stores the details of all jobs in memory.
-// It maps Job object using the job ID for faster lookup.
-var allJobs = make(map[string]*Job)
+// JobWorker wraps a map that stores details of all jobs in memory
+type JobWorker struct {
+	// read-write lock for the jobs map
+	sync.RWMutex
+	// jobs maps Job object against the job ID for faster lookup
+	jobs map[string]*Job
+}
+
+func NewJobWorker() *JobWorker {
+	return &JobWorker{
+		jobs: make(map[string]*Job),
+	}
+}
 
 // CreateJob takes a CreateJobRequest, starts the job, and returns the Job object.
 // It returns error if job fails to start.
 // On success, it creates a new Job object, assign a unique Job.ID, and sets Job.Status to JobRunning.
 // It stores the job in memory against the Job.ID.
 // It creates a new go routine that waits for job to exit.
-func CreateJob(request CreateJobRequest) (Job, error) {
+func (j *JobWorker) CreateJob(request CreateJobRequest) (Job, error) {
 	// combines stderr and stdout of the job process
 	var outputBuffer bytes.Buffer
 
@@ -46,7 +56,7 @@ func CreateJob(request CreateJobRequest) (Job, error) {
 	log.Infof("job %v: started", job.ID)
 
 	// save the job in memory for future reference
-	allJobs[job.ID] = &job
+	j.store(job.ID, &job)
 
 	// wait for job to finish
 	go handleFinish(&job)
@@ -57,8 +67,8 @@ func CreateJob(request CreateJobRequest) (Job, error) {
 // StopJob takes a job ID, fetch the job from memory, and kills the job process.
 // It returns error if job is not found or if job can not be terminated.
 // On success, it waits for cmd.Wait to finish which sets the Job.Status to JobExited.
-func StopJob(id string) error {
-	job, ok := allJobs[id]
+func (j *JobWorker) StopJob(id string) error {
+	job, ok := j.load(id)
 	if !ok {
 		return fmt.Errorf("job %v: not found", id)
 	}
@@ -82,10 +92,12 @@ func StopJob(id string) error {
 // GetJobStatus takes a job ID and returns the details of the job.
 // It converts the output buffer to string that indicates current output of the job process.
 // It returns error if job is not found.
-func GetJobStatus(id string) (Job, error) {
-	if job, ok := allJobs[id]; ok {
-		job.Output = string(job.outputBuffer.Bytes())
-		return *job, nil
+func (j *JobWorker) GetJobStatus(id string) (Job, error) {
+	if job, ok := j.load(id); ok {
+		// make a shallow copy of the job object
+		jobCopy := *job
+		jobCopy.Output = job.outputBuffer.String()
+		return jobCopy, nil
 	} else {
 		return Job{}, fmt.Errorf("job %v: not found", id)
 	}
@@ -114,4 +126,19 @@ func handleFinish(job *Job) {
 	}
 
 	job.Status = JobExited
+}
+
+// load returns the value for a key from the map
+func (j *JobWorker) load(key string) (*Job, bool) {
+	j.RLock()
+	value, ok := j.jobs[key]
+	j.RUnlock()
+	return value, ok
+}
+
+// store saves the value for a key in the map
+func (j *JobWorker) store(key string, value *Job) {
+	j.Lock()
+	j.jobs[key] = value
+	j.Unlock()
 }
