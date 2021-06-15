@@ -74,27 +74,20 @@ func TestForceStop(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	err = jobWorker.StopJob(job.ID)
-	if err != nil { // failed to terminate job
-		expectedStatus := JobRunning
+	if err = jobWorker.StopJob(job.ID); err != nil { // failed to terminate job
+		t.Fatalf("found error: %v", err)
+	}
 
-		job, err = jobWorker.GetJobStatus(job.ID)
-		if err != nil {
-			t.Fatalf("found error: %v", err)
-		} else if job.Status != expectedStatus {
-			t.Fatalf("expected status: %v, found: %v", expectedStatus, job.Status)
-		}
-	} else { // job terminated
-		expectedStatus := JobExited
-		expectedError := "signal: killed"
+	// job terminated, check status
+	expectedStatus := JobExited
+	expectedError := "signal: killed"
 
-		job, err = jobWorker.GetJobStatus(job.ID)
-		if err != nil {
-			t.Fatalf("found error: %v", err)
-		} else if job.Status != expectedStatus {
-			t.Fatalf("expected status: %v, found: %v", expectedStatus, job.Status)
-		} else if job.Error == nil || !strings.Contains(job.Error.Error(), expectedError) {
-			t.Fatalf("expected error")
-		}
+	job, err = jobWorker.GetJobStatus(job.ID)
+	if err != nil {
+		t.Fatalf("found error: %v", err)
+	} else if job.Status != expectedStatus {
+		t.Fatalf("expected status: %v, found: %v", expectedStatus, job.Status)
+	} else if job.Error == nil || !strings.Contains(job.Error.Error(), expectedError) {
+		t.Fatalf("expected job error: %v, found: %v", expectedError, job.Error)
 	}
 }
