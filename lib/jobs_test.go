@@ -71,7 +71,7 @@ func TestForceStop(t *testing.T) {
 	if err != nil {
 		t.Fatalf("found error: %v", err)
 	}
-	
+
 	if err = jobWorker.StopJob(job.ID); err != nil { // failed to terminate job
 		t.Fatalf("found error: %v", err)
 	}

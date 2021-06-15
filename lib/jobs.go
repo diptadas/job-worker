@@ -1,7 +1,6 @@
 package lib
 
 import (
-	"bytes"
 	"fmt"
 	"os/exec"
 	"sync"
@@ -18,6 +17,7 @@ type JobWorker struct {
 	jobs map[string]*Job
 }
 
+// NewJobWorker returns a new JobWorker object
 func NewJobWorker() *JobWorker {
 	return &JobWorker{
 		jobs: make(map[string]*Job),
@@ -31,7 +31,7 @@ func NewJobWorker() *JobWorker {
 // It creates a new go routine that waits for job to exit.
 func (j *JobWorker) CreateJob(request CreateJobRequest) (Job, error) {
 	// combines stderr and stdout of the job process
-	var outputBuffer bytes.Buffer
+	var outputBuffer Buffer
 
 	cmd := exec.Command(request.Command, request.Args...)
 	cmd.Stdout = &outputBuffer
@@ -96,7 +96,7 @@ func (j *JobWorker) GetJobStatus(id string) (Job, error) {
 	if job, ok := j.load(id); ok {
 		// make a shallow copy of the job object
 		jobCopy := *job
-		jobCopy.Output = job.outputBuffer.String()
+		jobCopy.Output = jobCopy.outputBuffer.String()
 		return jobCopy, nil
 	} else {
 		return Job{}, fmt.Errorf("job %v: not found", id)

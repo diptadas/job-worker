@@ -1,7 +1,6 @@
 package lib
 
 import (
-	"bytes"
 	"os/exec"
 	"sync"
 )
@@ -25,7 +24,7 @@ type Job struct {
 
 	// for internal use only
 	cmd          *exec.Cmd       // save the reference to the execution process to handle force stop
-	outputBuffer *bytes.Buffer   // contains stdout and stderr of the job process
+	outputBuffer *Buffer         // contains stdout and stderr of the job process
 	waitForExit  *sync.WaitGroup // used by StopJob to wait for cmd.Wait to finish
 }
 
