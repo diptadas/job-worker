@@ -107,8 +107,8 @@ Use "job-worker client [command] --help" for more information about a command.
 
 ```json
 {
-  "command": path-to-executable,
-  "args": list-of-arguments
+  "command": "bash",
+  "args": ["-c", "pwd"]
 }
 ```
 
@@ -117,11 +117,7 @@ Use "job-worker client [command] --help" for more information about a command.
 
 ## Generate TLS certificates
 
-```shell
-$ ./gen-cert.sh
-$ ls ssl
-ca.crt ca.key client.crt client.key server.crt server.key
-```
+TLS certs are already generated in the `ssl` directory. New certs can be generated using `gen-cert.sh` script.
 
 ## Run API server
 
@@ -146,35 +142,44 @@ $ docker run -p 8443:8443 -it diptadas/job-worker
 ```shell
 $ job-worker client create --cert ssl/client-alice.crt --key ssl/client-alice.key --cmd pwd | jq .
 {
-  "id": "c2l1qbucie6hpdufnung",
-  "command": "pwd",
+  "id": "c353t906n88jjt7idsmg",
   "status": "RUNNING",
   "output": "",
-  "error": ""
+  "request": {
+    "command": "pwd",
+    "args": null
+  },
+  "error": null
 }
 
-$ job-worker client status --cert ssl/client-alice.crt --key ssl/client-alice.key --id c2l1qbucie6hpdufnung | jq .
+$ job-worker client status --cert ssl/client-alice.crt --key ssl/client-alice.key --id c353t906n88jjt7idsmg | jq .
 {
-  "id": "c2l1qbucie6hpdufnung",
-  "command": "pwd",
+  "id": "c353t906n88jjt7idsmg",
   "status": "EXITED",
-  "output": "/Users/das/Downloads/teleport/job-worker\n",
-  "error": ""
+  "output": "/Users/das/Downloads/job/teleport/job-worker\n",
+  "request": {
+    "command": "pwd",
+    "args": null
+  },
+  "error": null
 }
 ```
 
 ### Using cURL
 
 ```shell
-$ curl -X GET https://localhost:8443/status/c2l1qbucie6hpdufnung \
+$ curl -X GET https://localhost:8443/status/c353t906n88jjt7idsmg \
   --cert ssl/client-alice.crt \
   --key ssl/client-alice.key \
   --cacert ssl/ca.crt | jq .
 {
-  "id": "c2l1qbucie6hpdufnung",
-  "command": "pwd",
+  "id": "c353t906n88jjt7idsmg",
   "status": "EXITED",
-  "output": "/Users/das/Downloads/teleport/job-worker\n",
-  "error": ""
+  "output": "/Users/das/Downloads/job/teleport/job-worker\n",
+  "request": {
+    "command": "pwd",
+    "args": null
+  },
+  "error": null
 }
 ```
