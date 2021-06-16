@@ -51,6 +51,7 @@ func (j *JobWorker) CreateJob(request CreateJobRequest) (Job, error) {
 		Status:       JobRunning,
 		cmd:          cmd,
 		outputBuffer: &outputBuffer,
+		waitForExit:  &sync.WaitGroup{},
 		statusLock:   &sync.RWMutex{},
 	}
 
@@ -116,8 +117,7 @@ func getNextJobID() string {
 // It sets the Job.Status to JobExited and sets Job.Error if any.
 // In case of exec.ExitError, exit code is wrapped in the error.
 func handleFinish(job *Job) {
-	// initialize the WaitGroup and release on exit
-	job.waitForExit = &sync.WaitGroup{}
+	// increment WaitGroup and release on exit
 	job.waitForExit.Add(1)
 	defer job.waitForExit.Done()
 
