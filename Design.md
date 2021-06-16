@@ -28,8 +28,7 @@ Design doc for a prototype job worker service that provides an API to run arbitr
 ## Job status
 
 - `Running` Job process started
-- `Exited` Job finished successfully or exited with error
-- `Exited_Force_Stop` Job exited after force stop requested
+- `Exited` Job finished successfully or exited with error or force stopped
 
 ## Job handling
 
@@ -49,7 +48,7 @@ Design doc for a prototype job worker service that provides an API to run arbitr
 - `StopJob(jobID)`
     - Fetch the job object from memory by job ID
     - Get the current status of the job and check if it is running or already stopped
-    - Stop the job process if it is running using `Cmd.Process.Kill()`. It returns error if termination fails and keep status `Running`. Otherwise send a confirmation on success and change status to `Exited_Force_Stop`.
+    - Stop the job process if it is running using `Cmd.Process.Kill()`. It returns error if termination fails and keep status `Running`. Otherwise, send a confirmation on success and change status to `Exited`.
 - `GetJobStatus(jobID)`
     - Fetch the job object from memory by job ID
     - Convert current output of the job from buffer to string
