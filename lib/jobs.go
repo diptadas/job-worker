@@ -11,7 +11,7 @@ import (
 
 // JobWorker wraps a map that stores details of all jobs in memory
 type JobWorker struct {
-	// read-write lock for the jobs map
+	// read-write statusLock for the jobs map
 	sync.RWMutex
 	// jobs maps Job object against the job ID for faster lookup
 	jobs map[string]*Job
@@ -51,6 +51,7 @@ func (j *JobWorker) CreateJob(request CreateJobRequest) (Job, error) {
 		Status:       JobRunning,
 		cmd:          cmd,
 		outputBuffer: &outputBuffer,
+		statusLock:   &sync.RWMutex{},
 	}
 
 	log.Infof("job %v: started", job.ID)
@@ -72,7 +73,7 @@ func (j *JobWorker) StopJob(id string) error {
 	if !ok {
 		return fmt.Errorf("job %v: not found", id)
 	}
-	if job.Status == JobExited {
+	if job.getStatus() == JobExited {
 		log.Infof("job %v: already exited", job.ID)
 		return nil
 	}
@@ -125,7 +126,7 @@ func handleFinish(job *Job) {
 		log.Infof("job %v: finished successfully", job.ID)
 	}
 
-	job.Status = JobExited
+	job.setStatus(JobExited)
 }
 
 // load returns the value for a key from the map

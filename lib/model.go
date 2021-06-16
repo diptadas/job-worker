@@ -26,10 +26,25 @@ type Job struct {
 	cmd          *exec.Cmd       // save the reference to the execution process to handle force stop
 	outputBuffer *Buffer         // contains stdout and stderr of the job process
 	waitForExit  *sync.WaitGroup // used by StopJob to wait for cmd.Wait to finish
+	statusLock   *sync.RWMutex   // read-write statusLock for the job status
 }
 
 // CreateJobRequest defines a request to create new job.
 type CreateJobRequest struct {
 	Command string   `json:"command"` // linux command to be executed
 	Args    []string `json:"args"`    // arguments to the command
+}
+
+// getStatus returns the Job status
+func (j *Job) getStatus() string {
+	j.statusLock.RLock()
+	defer j.statusLock.RUnlock()
+	return j.Status
+}
+
+// getStatus sets the Job status
+func (j *Job) setStatus(status string) {
+	j.statusLock.Lock()
+	defer j.statusLock.Unlock()
+	j.Status = status
 }
