@@ -85,6 +85,8 @@ func (j *JobWorker) StopJob(id string) error {
 	}
 
 	// wait for cmd.Wait to finish
+	// TODO: simplify synchronization with handleFinish() without using WaitGroup
+	// TODO: handle error of cmd.Wait here
 	job.waitForExit.Wait()
 	log.Infof("job %v: terminated", job.ID)
 	return nil
